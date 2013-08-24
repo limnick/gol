@@ -1,0 +1,197 @@
+<html>
+<head>
+    <title>Sharktopus</title>
+</head>
+<body>
+<canvas id="canvas" width="3420" height="900"></canvas>
+<script type="text/javascript">
+(function () {
+"use strict";
+var canvas = document.getElementById('canvas'),
+    context = canvas.getContext('2d'),
+    CELLSIZE = 1,
+    TSTEP = 10,
+    ROWS = 1200,
+    COLS = 2000,
+    changed = [],
+    needsReview = [],
+    drawCell, drawAll, stepFunc, setCell, procPattern, lifeStep, countNeighbors,
+    initGrid, swapGrid, repeat, grid, gridb, i, j, pattern;
+
+repeat = function(pattern, count) {
+    if (count < 1) return '';
+    var result = '';
+    while (count > 0) {
+        if (count & 1) result += pattern;
+        count >>= 1, pattern += pattern;
+    }
+    return result;
+};
+
+//init grid
+initGrid = function() {
+    var grid = new Array(COLS);
+    grid[0] = new Array(ROWS);
+    for (j = 0; j < ROWS; j++)
+        grid[0][j] = false;
+    for (i = 1; i < COLS; i++)
+        grid[i] = grid[0].slice(0);
+    return grid
+}
+
+swapGrid = function() {
+    for (var k = 0; k < grid.length; k++) {
+        gridb[k] = grid[k].slice(0);
+    }
+}
+
+drawCell = function(i, j, state) {
+    if (state) {
+        context.fillStyle = '#000000';
+    } else {
+        context.fillStyle = '#FFFFFF';
+    }
+    context.fillRect(i*CELLSIZE, j*CELLSIZE, CELLSIZE, CELLSIZE);
+};
+
+drawAll = function() {
+    for (var o = 0; o < changed.length; o++) {
+        i = changed[o][0];
+        j = changed[o][1];
+        drawCell(i, j, grid[i][j]);
+    }
+};
+
+setCell = function(i, j, state) {
+    // if (grid[i][j] !== state) {
+        grid[i][j] = state;
+        changed.push([i,j]);
+
+        // needsReview.push([i,j]);
+        // if (i > 0 && j > 0)
+        //     needsReview.push([i-1, j-1]);
+        // if (i > 0)
+        //     needsReview.push([i-1, j]);
+        // if (i > 0 && j < ROWS-1)
+        //     needsReview.push([i-1, j+1]);
+        // if (j > 0)
+        //     needsReview.push([i, j-1]);
+        // if (j < ROWS-1)
+        //     needsReview.push([i, j+1]);
+        // if (i < COLS-1 && j > 0)
+        //     needsReview.push([i+1, j-1]);
+        // if (i < COLS-1)
+        //     needsReview.push([i+1, j]);
+        // if (i < COLS-1 && j < ROWS-1)
+        //     needsReview.push([i+1, j+1]);
+    // }
+};
+
+countNeighbors = function(i, j) {
+    var c = 0;
+    if (i > 0 && j > 0)
+        c += gridb[i-1][j-1] === true ? 1 : 0;
+    if (i > 0)
+        c += gridb[i-1][j] === true ? 1 : 0;
+    if (i > 0 && j < ROWS-1)
+        c += gridb[i-1][j+1] === true ? 1 : 0;
+    if (j > 0)
+        c += gridb[i][j-1] === true ? 1 : 0;
+    if (j < ROWS-1)
+        c += gridb[i][j+1] === true ? 1 : 0;
+    if (i < COLS-1 && j > 0)
+        c += gridb[i+1][j-1] === true ? 1 : 0;
+    if (i < COLS-1)
+        c += gridb[i+1][j] === true ? 1 : 0;
+    if (i < COLS-1 && j < ROWS-1)
+        c += gridb[i+1][j+1] === true ? 1 : 0;
+    return c;
+};
+
+lifeStep = function() {
+    var setList = [],
+        n;
+    // for (var o = 0; o < needsReview.length; o++) {
+    for (var i = 0; i < COLS; i++) {
+        for (var j = 0; j < ROWS; j++) {
+            // i = needsReview[o][0];
+            // j = needsReview[o][1];
+            n = countNeighbors(i,j);
+            if (gridb[i][j]) {
+                if (n <= 1) {
+                    setList.push([i,j,false]);
+                // } else if (n <= 3) {
+                //     setList.push([i,j,true]);
+                } else if (n > 3) {
+                    setList.push([i,j,false]);
+                }
+            } else {
+                if (n === 3) {
+                    setList.push([i,j,true]);
+                }
+            }
+        }
+    }
+
+    for (var o = 0; o < setList.length; o++) {
+        // console.log(setList[o]);
+        setCell.apply(this, setList[o]);
+    }
+};
+
+stepFunc = function() {
+    lifeStep();
+    drawAll();
+    swapGrid();
+    changed = [];
+    needsReview = [];
+    setTimeout(stepFunc, TSTEP);
+};
+
+procPattern = function(pattern) {
+    var seen_tokens = [],
+        newpat = pattern,
+        rowMatcher, row, rows, runs, run, runLen, token, tokens, token_count;
+
+    tokens = pattern.match(/([0-9]+)\$/g);
+    for (var k = 0; k < tokens.length; k++) {
+        token = tokens[k];
+        if (seen_tokens.indexOf(token) === -1) {
+            token_count = parseInt(token.slice(0,token.length-1));
+            newpat = newpat.replace(token, repeat('$$', token_count));
+        }
+    }
+
+    rows = newpat.split("$")
+    rowMatcher = /([0-9]*(?:b|o))/g;
+
+    for (j = 0; j < rows.length; j++) {
+        row = rows[j];
+        runs = row.match(rowMatcher);
+        if (!runs) {continue;}
+        i = 0;
+        for (var o = 0; o < runs.length; o++) {
+            run = runs[o];
+            runLen = parseInt(run.slice(0,run.length-1)) || 1;
+            if (run.slice(-1) === "o") {
+                for (var k = 0; k < runLen; k++) {
+                    setCell(i+k, j, true);
+                }
+            }
+            i += runLen;
+        }
+    }
+}
+
+pattern = "20$1459b4o7b2o$1458bo3bo6bo2bo12b2o$1458bo10bo2b2o11b2o$1459bob2obo4bo2bo$1462b3o6bo2$1462b3o6bo$1461b2obo4bo2bo$1460bo8bo2b2o$1461b2o6bo2bo$1462bo7b2o3$1495b2o$1495b2o5$1489bo5bo$1488b3o3b3o$1487bo2b2ob2o2bo$1487bo3bobo3bo$1489bobobobo2$1486b2ob2o3b2ob2o$1488bo7bo5$1495bo$1494b3o$1493bo3bo$1492bo5bo$1492bo5bo$1493bo3bo2$1493bo3bo$1492bo5bo$1475b2o11b2o2bo5bo$1476b2o10b2o3bo3bo$1475bo18b3o$1495bo8$1464bo$1464b2o$1463bobo10$1414bo37b2o$1413bo39b2o$1413b3o36bo9$1441bo$1402bo38b2o$1402bobo35bobo$1402b2o9$1429b2o$1430b2o$1429bo9$1418bo$1418b2o$1417bobo7$1505b4o7b2o$1504bo3bo6bo2bo12b2o$1504bo10bo2b2o11b2o$1406b2o97bob2obo4bo2bo$1407b2o99b3o6bo$1406bo$1508b3o6bo$1507b2obo4bo2bo$1506bo8bo2b2o$1507b2o6bo2bo$1508bo7b2o3$1541b2o$1395bo145b2o$1395b2o$1394bobo3$1535bo5bo$1534b3o3b3o$1533bo2b2ob2o2bo$1533bo3bobo3bo$1535bobobobo2$1532b2ob2o3b2ob2o$1534bo7bo5$1541bo$1540b3o$1539bo3bo$1538bo5bo$1538bo5bo$1539bo3bo2$1539bo3bo$1538bo5bo$1534b2o2bo5bo$1534b2o3bo3bo$1540b3o$1541bo8$1510bo$1510b2o$1509bobo7$1349bo$1349b2o$1348bobo$1498b2o$1499b2o$1498bo7$1337b2o$1338b2o$1337bo2$1274b2o$1274b2o9$1437bo$1436bo$1436b3o10$1241b2o182bo$1241b2o182bobo$1425b2o6$1551b4o7b2o$1550bo3bo6bo2bo12b2o$1550bo10bo2b2o11b2o$1551bob2obo4bo2bo$1554b3o6bo2$1234b3o3b3o311b3o6bo$1234bo2bobo2bo310b2obo4bo2bo$1234b2obobob2o309bo8bo2b2o$1234b2o5b2o310b2o6bo2bo$1554bo7b2o2$1253bo$1252bo334b2o$1236b2ob2o11b3o332b2o$1234bo2bobo2bo$1234bobo3bo3bo3b3o$1234b3o3bo3bo3bobo$1242bo2bobo2bo$1244b2ob2o332bo5bo$1580b3o3b3o$1579bo2b2ob2o2bo$1579bo3bobo3bo$1581bobobobo$1242b2o5b2o$1242b2obobob2o327b2ob2o3b2ob2o$1242bo2bobo2bo329bo7bo$1242b3o3b3o8bo$1257bobo316b2o$1258b2o315b2o$1577bo$1587bo$1586b3o$1585bo3bo$1584bo5bo$1584bo5bo$1585bo3bo$1261b2o155bo$1261b2o155b2o165bo3bo$1417bobo164bo5bo$1249b2o316b2o11b2o2bo5bo$1249b2o317b2o10b2o3bo3bo$1567bo18b3o$1587bo6$1320b2o84b2o$1320b2o85b2o$1406bo2$1261bo7bo44bo5bo$1260b4o3b4o42b3o3b3o$1260bo3bobo3bo42bob2ob2obo$1261bo2bobo2bo42b2o7b2o$1261b3o3b3o42b2o7b2o$1312b3o5b3o$1314b3ob3o$1316bobo76bo$1313bo2bobo2bo73b2o$1312bo2bo3bo2bo71bobo$1313b2o5b2o$1268b2o$1268b2o8$2b2o$bobo$bo$2o1318b2o$1320b2o21$1287b2o$1287b2o7$1597b4o7b2o$1596bo3bo6bo2bo12b2o$1596bo10bo2b2o11b2o$1460bo136bob2obo4bo2bo$1459bo140b3o6bo$1459b3o$1280b3o3b3o311b3o6bo$1280bo2bobo2bo310b2obo4bo2bo$1280b2obobob2o309bo8bo2b2o$1280b2o5b2o310b2o6bo2bo$1600bo7b2o2$1337b2o$1338b2o293b2o$1282b2ob2o50bo149bo145b2o$1280bo2bobo2bo159bo38b2o$1280bobo3bo3bo3b3o151bobo35bobo122bo$1280b3o3bo3bo3bobo151b2o148bo11b2o$1288bo2bobo2bo300bo12bobo$1290b2ob2o302b3o27bo5bo$1626b3o3b3o$1625bo2b2ob2o2bo$1625bo3bobo3bo$1326bo300bobobobo$1288b2o5b2o29b2o$1288b2obobob2o28bobo296b2ob2o3b2ob2o$1288bo2bobo2bo178b2o149bo7bo$1288b3o3b3o179b2o$1475bo3$1633bo$1632b3o$1631bo3bo$1630bo5bo$1314b2o314bo5bo$1315b2o314bo3bo$1307b2o5bo149bo$1307b2o155b2o165bo3bo$1463bobo164bo5bo$1295b2o329b2o2bo5bo$1295b2o329b2o3bo3bo$1632b3o$1633bo6$1366b2o84b2o$1366b2o85b2o$1452bo2$1307bo7bo44bo5bo$1306b4o3b4o42b3o3b3o$1306bo3bobo3bo42bob2ob2obo$1307bo2bobo2bo42b2o7b2o$1307b3o3b3o42b2o7b2o$1358b3o5b3o$1360b3ob3o$1362bobo$1359bo2bobo2bo$1358bo2bo3bo2bo$1359b2o5b2o$1314b2o$1314b2o8$2b2o$bobo$bo$2o1364b2o$1366b2o6$1418bo$1418b2o$1417bobo10$1406b2o$1407b2o$1406bo149bo$1333b2o221b2o$1333b2o220bobo7$1395bo247b4o7b2o$1395b2o245bo3bo6bo2bo12b2o$1394bobo245bo10bo2b2o11b2o$1544b2o97bob2obo4bo2bo$1545b2o99b3o6bo$1544bo$1326b3o3b3o311b3o6bo$1326bo2bobo2bo310b2obo4bo2bo$1326b2obobob2o309bo8bo2b2o$1326b2o5b2o310b2o6bo2bo$1646bo7b2o2$1383b2o$1384b2o293b2o$1328b2ob2o50bo295b2o$1326bo2bobo2bo$1326bobo3bo3bo3b3o$1326b3o3bo3bo3bobo$1334bo2bobo2bo$1336b2ob2o332bo5bo$1672b3o3b3o$1671bo2b2ob2o2bo$1671bo3bobo3bo$1673bobobobo$1334b2o5b2o$1334b2obobob2o327b2ob2o3b2ob2o$1334bo2bobo2bo140bo37b2o149bo7bo$1334b3o3b3o139bo39b2o$1482b3o36bo$1632bo$1632bobo$1632b2o45bo$1678b3o$1677bo3bo$1676bo5bo$1676bo5bo$1677bo3bo$1353b2o155bo$1353b2o116bo38b2o165bo3bo$1471bobo35bobo164bo5bo$1341b2o128b2o148bo50b2o2bo5bo$1341b2o277bo51b2o3bo3bo$1620b3o55b3o$1679bo6$1412b2o84b2o$1412b2o85b2o$1498bo2$1353bo7bo44bo5bo$1352b4o3b4o42b3o3b3o$1352bo3bobo3bo42bob2ob2obo$1353bo2bobo2bo42b2o7b2o$1353b3o3b3o42b2o7b2o$1404b3o5b3o$1406b3ob3o$1408bobo76bo$1405bo2bobo2bo73b2o$1404bo2bo3bo2bo71bobo$1405b2o5b2o$1360b2o$1360b2o8$2b2o$bobo1621bo$bo1623b2o$2o1410b2o210bobo$1412b2o6$1464bo$1464b2o$1463bobo$1613b2o$1614b2o$1613bo7$1452b2o$1453b2o$1452bo$1379b2o$1379b2o7$1689b4o7b2o$1688bo3bo6bo2bo12b2o$1688bo10bo2b2o11b2o$1689bob2obo4bo2bo$1692b3o6bo2$1372b3o3b3o311b3o6bo$1372bo2bobo2bo310b2obo4bo2bo$1372b2obobob2o309bo8bo2b2o$1372b2o5b2o310b2o6bo2bo$1692bo7b2o3$1725b2o$1374b2ob2o200bo145b2o$1372bo2bobo2bo198b2o$1372bobo3bo3bo3b3o189bobo$1372b3o3bo3bo3bobo301bo$1380bo2bobo2bo300bo$1382b2ob2o302b3o27bo5bo$1718b3o3b3o$1717bo2b2ob2o2bo$1717bo3bobo3bo$1719bobobobo$1380b2o5b2o$1380b2obobob2o327b2ob2o3b2ob2o$1380bo2bobo2bo178b2o149bo7bo$1380b3o3b3o179b2o$1567bo$1678bo$1678bobo$1678b2o45bo$1724b3o$1723bo3bo$1722bo5bo$1722bo5bo$1723bo3bo$1399b2o$1399b2o322bo3bo$1722bo5bo$1387b2o278bo50b2o2bo5bo$1387b2o277bo51b2o3bo3bo$1666b3o55b3o$1725bo6$1458b2o46bo$1458b2o45bo$1505b3o186bo$1655bo38b2o$1399bo7bo44bo5bo196bobo35bobo$1398b4o3b4o42b3o3b3o195b2o$1398bo3bobo3bo42bob2ob2obo$1399bo2bobo2bo42b2o7b2o$1399b3o3b3o42b2o7b2o$1450b3o5b3o$1452b3ob3o$1454bobo76bo$1451bo2bobo2bo34bo38b2o$1450bo2bo3bo2bo33bobo35bobo$1451b2o5b2o34b2o148bo37b2o$1406b2o235bo39b2o$1406b2o235b3o36bo7$1521b2o$2b2o1518b2o$bobo1517bo$bo1630bo$2o1456b2o172bobo$1458b2o172b2o9$1621bo$1620bo$1620b3o10$1425b2o182bo$1425b2o182bobo$1609b2o12$1418b3o3b3o$1418bo2bobo2bo$1418b2obobob2o$1418b2o5b2o5$1420b2ob2o$1418bo2bobo2bo$1418bobo3bo3bo3b3o$1418b3o3bo3bo3bobo$1426bo2bobo2bo$1428b2ob2o5$1426b2o5b2o$1426b2obobob2o$1426bo2bobo2bo$1426b3o3b3o10$1445b2o155bo$1445b2o116bo38b2o$1563bobo35bobo$1433b2o128b2o$1433b2o8$1504b2o46bo37b2o$1504b2o45bo39b2o$1551b3o36bo2$1445bo7bo44bo5bo$1444b4o3b4o42b3o3b3o$1444bo3bobo3bo42bob2ob2obo$1445bo2bobo2bo42b2o7b2o$1445b3o3b3o42b2o7b2o$1496b3o5b3o$1498b3ob3o$1500bobo$1497bo2bobo2bo34bo$1496bo2bo3bo2bo33bobo$1497b2o5b2o34b2o$1452b2o$1452b2o7$1529bo$2b2o1524bo$bobo1524b3o$bo$2o1502b2o$1504b2o7$1517bo$1517bobo$1517b2o12$1471b2o$1471b2o13$1464b3o3b3o$1464bo2bobo2bo$1464b2obobob2o$1464b2o5b2o5$1466b2ob2o$1464bo2bobo2bo$1464bobo3bo3bo3b3o$1464b3o3bo3bo3bobo$1472bo2bobo2bo$1474b2ob2o5$1472b2o5b2o$1472b2obobob2o$1472bo2bobo2bo$1472b3o3b3o10$1491b2o$1491b2o2$1479b2o$1479b2o8$1550b2o$1550b2o3$1491bo7bo44bo5bo$1490b4o3b4o42b3o3b3o$1490bo3bobo3bo42bob2ob2obo$1491bo2bobo2bo42b2o7b2o$1491b3o3b3o42b2o7b2o$1542b3o5b3o$1544b3ob3o$1546bobo$1543bo2bobo2bo$1542bo2bo3bo2bo$1543b2o5b2o$1498b2o$1498b2o8$2b2o$bobo$bo$2o1548b2o$1550b2o"
+
+grid = initGrid();
+gridb = initGrid();
+procPattern(pattern);
+swapGrid();
+stepFunc();
+
+})();
+</script>
+</body>
+</html>
