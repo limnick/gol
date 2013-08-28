@@ -10,7 +10,7 @@
 var canvas = document.getElementById('canvas'),
     context = canvas.getContext('2d'),
     CELLSIZE = 1,
-    TSTEP = 10,
+    TSTEP = 0,
     ROWS = 1200,
     COLS = 2000,
     changed = [],
@@ -30,17 +30,17 @@ repeat = function(pattern, count) {
 
 //init grid
 initGrid = function() {
-    var grid = new Array(COLS);
-    grid[0] = new Array(ROWS);
-    for (j = 0; j < ROWS; j++)
+    var grid = new Array(COLS+2);
+    grid[0] = new Array(ROWS+2);
+    for (j = 0; j < ROWS+2; j++)
         grid[0][j] = false;
-    for (i = 1; i < COLS; i++)
+    for (i = 1; i < COLS+2; i++)
         grid[i] = grid[0].slice(0);
     return grid
 }
 
 swapGrid = function() {
-    for (var k = 0; k < grid.length; k++) {
+    for (var k = 1; k < grid.length-1; k++) {
         gridb[k] = grid[k].slice(0);
     }
 }
@@ -51,7 +51,7 @@ drawCell = function(i, j, state) {
     } else {
         context.fillStyle = '#FFFFFF';
     }
-    context.fillRect(i*CELLSIZE, j*CELLSIZE, CELLSIZE, CELLSIZE);
+    context.fillRect((i-1)*CELLSIZE, (j-1)*CELLSIZE, CELLSIZE, CELLSIZE);
 };
 
 drawAll = function() {
@@ -89,22 +89,14 @@ setCell = function(i, j, state) {
 
 countNeighbors = function(i, j) {
     var c = 0;
-    if (i > 0 && j > 0)
-        c += gridb[i-1][j-1] === true ? 1 : 0;
-    if (i > 0)
-        c += gridb[i-1][j] === true ? 1 : 0;
-    if (i > 0 && j < ROWS-1)
-        c += gridb[i-1][j+1] === true ? 1 : 0;
-    if (j > 0)
-        c += gridb[i][j-1] === true ? 1 : 0;
-    if (j < ROWS-1)
-        c += gridb[i][j+1] === true ? 1 : 0;
-    if (i < COLS-1 && j > 0)
-        c += gridb[i+1][j-1] === true ? 1 : 0;
-    if (i < COLS-1)
-        c += gridb[i+1][j] === true ? 1 : 0;
-    if (i < COLS-1 && j < ROWS-1)
-        c += gridb[i+1][j+1] === true ? 1 : 0;
+    c += gridb[i-1][j-1] === true ? 1 : 0;
+    c += gridb[i-1][j] === true ? 1 : 0;
+    c += gridb[i-1][j+1] === true ? 1 : 0;
+    c += gridb[i][j-1] === true ? 1 : 0;
+    c += gridb[i][j+1] === true ? 1 : 0;
+    c += gridb[i+1][j-1] === true ? 1 : 0;
+    c += gridb[i+1][j] === true ? 1 : 0;
+    c += gridb[i+1][j+1] === true ? 1 : 0;
     return c;
 };
 
@@ -112,8 +104,8 @@ lifeStep = function() {
     var setList = [],
         n;
     // for (var o = 0; o < needsReview.length; o++) {
-    for (var i = 0; i < COLS; i++) {
-        for (var j = 0; j < ROWS; j++) {
+    for (var i = 1; i < COLS+1; i++) {
+        for (var j = 1; j < ROWS+1; j++) {
             // i = needsReview[o][0];
             // j = needsReview[o][1];
             n = countNeighbors(i,j);
