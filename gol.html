@@ -1,9 +1,14 @@
 <html>
 <head>
     <title>Sharktopus</title>
+    <style>
+body {
+    background: #000000;
+}
+    </style>
 </head>
 <body>
-<canvas id="canvas" width="3420" height="900"></canvas>
+<canvas id="canvas" width="1820" height="900"></canvas>
 <script type="text/javascript">
 (function () {
 "use strict";
@@ -46,12 +51,8 @@ swapGrid = function() {
 }
 
 drawCell = function(i, j, state) {
-    if (state) {
-        context.fillStyle = '#000000';
-    } else {
-        context.fillStyle = '#FFFFFF';
-    }
-    context.fillRect((i-1)*CELLSIZE, (j-1)*CELLSIZE, CELLSIZE, CELLSIZE);
+    context.fillStyle = state ? '#FFFFFF' : '#000000';
+    context.fillRect(i*CELLSIZE, j*CELLSIZE, CELLSIZE, CELLSIZE);
 };
 
 drawAll = function() {
@@ -63,28 +64,12 @@ drawAll = function() {
 };
 
 setCell = function(i, j, state) {
-    // if (grid[i][j] !== state) {
+    if (!(i == 0 || j == 0 || i == COLS+1 || j == ROWS+1) && gridb[i][j] == grid[i][j]) {
         grid[i][j] = state;
         changed.push([i,j]);
 
-        // needsReview.push([i,j]);
-        // if (i > 0 && j > 0)
-        //     needsReview.push([i-1, j-1]);
-        // if (i > 0)
-        //     needsReview.push([i-1, j]);
-        // if (i > 0 && j < ROWS-1)
-        //     needsReview.push([i-1, j+1]);
-        // if (j > 0)
-        //     needsReview.push([i, j-1]);
-        // if (j < ROWS-1)
-        //     needsReview.push([i, j+1]);
-        // if (i < COLS-1 && j > 0)
-        //     needsReview.push([i+1, j-1]);
-        // if (i < COLS-1)
-        //     needsReview.push([i+1, j]);
-        // if (i < COLS-1 && j < ROWS-1)
-        //     needsReview.push([i+1, j+1]);
-    // }
+        needsReview.push([i,j]);
+    }
 };
 
 countNeighbors = function(i, j) {
@@ -102,18 +87,17 @@ countNeighbors = function(i, j) {
 
 lifeStep = function() {
     var setList = [],
-        n;
-    // for (var o = 0; o < needsReview.length; o++) {
-    for (var i = 1; i < COLS+1; i++) {
-        for (var j = 1; j < ROWS+1; j++) {
-            // i = needsReview[o][0];
-            // j = needsReview[o][1];
+        n, x, y;
+    for (var o = 0; o < needsReview.length; o++) {
+        x = needsReview[o][0];
+        y = needsReview[o][1];
+        for (var i = x-1; i <= x+1; i++) {
+        for (var j = y-1; j <= y+1; j++) {
+            if (i == 0 || j == 0 || i == COLS+1 || j == ROWS+1) { continue; }
             n = countNeighbors(i,j);
             if (gridb[i][j]) {
                 if (n <= 1) {
                     setList.push([i,j,false]);
-                // } else if (n <= 3) {
-                //     setList.push([i,j,true]);
                 } else if (n > 3) {
                     setList.push([i,j,false]);
                 }
@@ -123,10 +107,13 @@ lifeStep = function() {
                 }
             }
         }
+        }
     }
 
+    needsReview = [];
+    changed = [];
+
     for (var o = 0; o < setList.length; o++) {
-        // console.log(setList[o]);
         setCell.apply(this, setList[o]);
     }
 };
@@ -135,8 +122,6 @@ stepFunc = function() {
     lifeStep();
     drawAll();
     swapGrid();
-    changed = [];
-    needsReview = [];
     setTimeout(stepFunc, TSTEP);
 };
 
@@ -167,7 +152,7 @@ procPattern = function(pattern) {
             runLen = parseInt(run.slice(0,run.length-1)) || 1;
             if (run.slice(-1) === "o") {
                 for (var k = 0; k < runLen; k++) {
-                    setCell(i+k, j, true);
+                    setCell(i+k+1, j+1, true);
                 }
             }
             i += runLen;
