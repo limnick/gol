@@ -35,8 +35,8 @@ canvas.onmouseup = function(e) {
 canvas.onmousemove = function(e) {
     if (!is_mouse_down) { return; }
     var rect = canvas.getBoundingClientRect(),
-        x = Math.round(e.x - rect.left),
-        y = Math.round(e.y - rect.top);
+        x = Math.round(e.clientX - rect.left),
+        y = Math.round(e.clientY - rect.top);
     setCell(x, y, true, true);
     drawCell(x, y, true);
     return false;
