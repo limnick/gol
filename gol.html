@@ -15,7 +15,7 @@ body {
 var canvas = document.getElementById('canvas'),
     context = canvas.getContext('2d'),
     CELLSIZE = 1,
-    TSTEP = 10,
+    TSTEP = 1,
     ROWS = 1200,
     COLS = 2000,
     changed = [],
@@ -60,12 +60,14 @@ initGrid = function() {
         grid[0][j] = false;
     for (i = 1; i < COLS+2; i++)
         grid[i] = grid[0].slice(0);
-    return grid
+    return grid;
 }
 
 swapGrid = function() {
-    for (var k = 1; k < grid.length-1; k++) {
-        gridb[k] = grid[k].slice(0);
+    for (var o = 0; o < changed.length; o++) {
+        i = changed[o][0];
+        j = changed[o][1];
+        gridb[i][j] = grid[i][j];
     }
 }
 
